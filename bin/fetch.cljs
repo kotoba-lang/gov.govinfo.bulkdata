@@ -1,0 +1,89 @@
+#!/usr/bin/env nbb
+;; Preserves the govinfo.gov bulkdata US federal legislative corpus into raw/.
+;;
+;;   raw/billstatus/BILLSTATUS-<congress>-<type>.zip
+;;        every bill's status record. This is where the US DEPENDENCY EDGES
+;;        live: <relatedBills> (identified/procedurally-related/companion
+;;        measures), <laws> (the public law a bill became), and the amendment
+;;        records.
+;;   raw/bills/BILLS-<congress>-<session>-<type>.zip
+;;        the full USLM text of every bill version.
+;;   raw/plaw/PLAW-<congress>-public.zip
+;;        the full USLM text of every enacted public law.
+;;
+;; govinfo publishes these zips specifically so consumers do not hammer it
+;; with per-document requests: the 119th Congress alone is >30,000 documents,
+;; which as individual GETs would be abusive. 11 requests replace them.
+;;
+;; Scope (wave 1, complete as a class): the 119th Congress. Earlier congresses
+;; are the same URL shape with a different number and are a recorded wave-2
+;; gap, not an oversight.
+;;
+;; Usage: nbb --classpath bin bin/fetch.cljs [--congress N]
+(ns fetch
+  (:require [lib :refer [fetch-buffer log mkdirp! exists? write-file! pooled
+                         file-size]]
+            [clojure.string :as str]))
+
+(def base "https://www.govinfo.gov/bulkdata")
+(def raw "raw")
+
+(def args (vec *command-line-args*))
+(defn arg [flag default]
+  (if-let [i (first (keep-indexed #(when (= %2 flag) %1) args))]
+    (js/parseInt (nth args (inc i)))
+    default))
+
+(def congress (arg "--congress" 119))
+
+;; Every measure type Congress uses. hr/s are bills; the *res types are
+;; resolutions, which are also legislative measures and carry the same
+;; relatedBills edges, so excluding them would silently truncate the graph.
+(def bill-types ["hr" "s" "hjres" "sjres" "hconres" "sconres" "hres" "sres"])
+(def sessions [1 2])
+
+(defn targets []
+  (concat
+   (for [t bill-types]
+     {:kind :billstatus
+      :url (str base "/BILLSTATUS/" congress "/" t "/BILLSTATUS-" congress "-" t ".zip")
+      :path (str raw "/billstatus/BILLSTATUS-" congress "-" t ".zip")})
+   (for [s sessions t bill-types]
+     {:kind :bills
+      :url (str base "/BILLS/" congress "/" s "/" t "/BILLS-" congress "-" s "-" t ".zip")
+      :path (str raw "/bills/BILLS-" congress "-" s "-" t ".zip")})
+   [{:kind :plaw
+     :url (str base "/PLAW/" congress "/public/PLAW-" congress "-public.zip")
+     :path (str raw "/plaw/PLAW-" congress "-public.zip")}]))
+
+(defn fetch-one [{:keys [url path kind]}]
+  (if (and (exists? path) (pos? (file-size path)))
+    (js/Promise.resolve {:path path :skipped true})
+    (-> (fetch-buffer url {:tries 4})
+        (.then (fn [{:keys [ok buf status error]}]
+                 (if ok
+                   (do (write-file! path buf)
+                       (log "saved" path (.-length buf) "bytes")
+                       {:path path :kind kind :bytes (.-length buf)})
+                   ;; A session that has not started yet legitimately 404s.
+                   ;; That is absence of data, not a fetch failure, and must
+                   ;; not be reported as an error.
+                   (do (log (if (= 404 status) "absent (404)" "FAILED") path (or status error))
+                       {:path path :kind kind :failed (or status error)
+                        :absent (= 404 status)})))))))
+
+(defn -main []
+  (doseq [d ["billstatus" "bills" "plaw"]] (mkdirp! (str raw "/" d)))
+  (-> (pooled 3 (targets) (fn [t _] (fetch-one t)))
+      (.then (fn [rs]
+               (let [failed (remove :absent (filter :failed rs))]
+                 (log "done. fetched" (count (remove #(or (:failed %) (:skipped %)) rs))
+                      "cached" (count (filter :skipped rs))
+                      "absent(404)" (count (filter :absent rs))
+                      "failed" (count failed))
+                 (when (seq failed)
+                   (log "FAILED:" (str/join "," (map :path failed)))
+                   (set! (.-exitCode js/process) 1)))))
+      (.catch (fn [e] (log "FATAL" (str e)) (set! (.-exitCode js/process) 1)))))
+
+(-main)
