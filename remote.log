@@ -1,0 +1,1 @@
+246995e1-be3c-4201-b7ed-8a3e442f0288 bucket=gftdcojp-m365-annex chunk=50MiB datacenter=US encryption=none fileprefix=gov.govinfo.bulkdata/ host=s3.us-west-004.backblazeb2.com name=b2 port=443 protocol=https signature=v4 storageclass=STANDARD type=S3 timestamp=1785832785s
