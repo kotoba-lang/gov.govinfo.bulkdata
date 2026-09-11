@@ -19,7 +19,7 @@
 ;; are the same URL shape with a different number and are a recorded wave-2
 ;; gap, not an oversight.
 ;;
-;; Usage: nbb --classpath bin bin/fetch.cljs [--congress N]
+;; Usage: nbb --classpath bin bin/fetch.cljk [--congress N]
 (ns fetch
   (:require [lib :refer [fetch-buffer log mkdirp! exists? write-file! pooled
                          file-size]]

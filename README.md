@@ -52,8 +52,8 @@
 ## 再取得 / 再生成
 
 ```bash
-nbb --classpath bin bin/fetch.cljs --congress 119   # 25 個の zip
-nbb --classpath bin bin/index.cljs                  # 展開して索引化（system unzip を使用）
+nbb --classpath bin bin/fetch.cljk --congress 119   # 25 個の zip
+nbb --classpath bin bin/index.cljk                  # 展開して索引化（system unzip を使用）
 ```
 
-`bin/index.cljs` は system の `unzip` を使います。Node は zlib を持ちますがアーカイブリーダを持たず、保全 dataset の索引再生成が数年後に npm install を要求する状態にはしたくないためです（`unzip` は POSIX）。
+`bin/index.cljk` は system の `unzip` を使います。Node は zlib を持ちますがアーカイブリーダを持たず、保全 dataset の索引再生成が数年後に npm install を要求する状態にはしたくないためです（`unzip` は POSIX）。
