@@ -10,7 +10,7 @@
 ;;                          (this measure BECAME that public law).
 ;;   raw/source-catalog.edn — sha256 of each preserved zip.
 ;;
-;; Usage: nbb --classpath bin bin/index.cljs
+;; Usage: nbb --classpath bin bin/index.cljk
 (ns index
   (:require [lib :refer [log write-edn! sha256 sha256-file file-size mkdirp!]]
             [clojure.string :as str]))
