@@ -1,4 +1,4 @@
-#!/usr/bin/env nbb
+#!/usr/bin/env kbb
 ;; Preserves the govinfo.gov bulkdata US federal legislative corpus into raw/.
 ;;
 ;;   raw/billstatus/BILLSTATUS-<congress>-<type>.zip
@@ -19,7 +19,7 @@
 ;; are the same URL shape with a different number and are a recorded wave-2
 ;; gap, not an oversight.
 ;;
-;; Usage: nbb --classpath bin bin/fetch.cljk [--congress N]
+;; Usage: kbb --backend sci --classpath bin bin/fetch.cljk [--congress N]
 (ns fetch
   (:require [lib :refer [fetch-buffer log mkdirp! exists? write-file! pooled
                          file-size]]
